@@ -180,7 +180,7 @@ AUDIT_LOGS = [
 ]
 # Load persisted demo data when available. The application still works with the
 # defaults above on first launch, then writes changes to storage/swms_data.json.
-from SWMS_LAST_FINAL.storage import load_data
+from storage import load_data
 load_data(globals())
 
 
