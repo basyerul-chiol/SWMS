@@ -526,7 +526,7 @@ def sync_approved_leave_calendar_invitation(leave, organizer):
         ),
     }
 
-    #persist_data()
+    # The calling route persists all leave changes once, after the workflow ends.
     return leave["google_calendar_invitation"]
 
 
@@ -1796,9 +1796,22 @@ def create_task():
         )
         delivery_category = "warning"
 
-    #persist_data()
-    flash("Task created. " + "; ".join(delivery_notes) + ".", delivery_category)
+    # Persist the completed task workflow once. Calendar sync no longer saves
+    # the entire database separately, so only one full write occurs here.
+    try:
+        persist_data()
+    except Exception as error:
+        app.logger.exception("Task persistence failed: %s", error)
+        flash(
+            "Task was created in the current session, but database saving failed.",
+            "warning",
+        )
+        return redirect(url_for("manager_dashboard"))
 
+    flash(
+        "Task created. " + "; ".join(delivery_notes) + ".",
+        delivery_category,
+    )
     return redirect(url_for("manager_dashboard"))
 
 
