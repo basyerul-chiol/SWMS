@@ -197,74 +197,71 @@ def google_calendar_service(user_id):
 
 
 def swms_user_by_name(name):
-    """Find a SWMS login account using the employee's display name."""
+    """
+    Find a SWMS login account using the display name.
+
+    Kept for compatibility with other parts of the system.
+    """
     normalized_name = (name or "").strip().lower()
+
     return next(
         (
-            user for user in USERS
+            user
+            for user in USERS
             if user.get("name", "").strip().lower() == normalized_name
         ),
         None,
     )
 
 
-def create_google_calendar_event(
-    user_id,
-    event_body,
-    send_updates="none",
-):
+def swms_user_by_email(email):
+    """Find a SWMS login account using its email address."""
+    normalized_email = (email or "").strip().lower()
+
+    if not normalized_email:
+        return None
+
+    return next(
+        (
+            user
+            for user in USERS
+            if user.get("email", "").strip().lower() == normalized_email
+        ),
+        None,
+    )
+
+
+def calendar_user_for_employee_name(employee_name):
     """
-    Insert an event into a connected user's primary Google Calendar.
+    Find the correct SWMS login account for an employee.
 
-    The connected user becomes the event organizer. When send_updates is
-    "all", Google sends invitation emails to every attendee in event_body.
-    Calendar failures never cancel the main SWMS workflow.
+    The employee is first located in EMPLOYEES using the name stored in
+    the task or leave request. The matching USERS account is then selected
+    using the employee's email address.
+
+    This prevents Google Calendar invitations from being sent to the wrong
+    account when names are duplicated or changed.
     """
-    service = google_calendar_service(user_id)
+    normalized_name = (employee_name or "").strip().lower()
 
-    if not service:
-        return {
-            "success": False,
-            "status": "Organizer Not Connected",
-            "event_id": "",
-            "event_link": "",
-            "error": "The organizer has not connected Google Calendar.",
-        }
+    employee = next(
+        (
+            item
+            for item in EMPLOYEES
+            if item.get("name", "").strip().lower() == normalized_name
+        ),
+        None,
+    )
 
-    try:
-        created_event = (
-            service.events()
-            .insert(
-                calendarId="primary",
-                body=event_body,
-                sendUpdates=send_updates,
-            )
-            .execute()
-        )
+    if not employee:
+        return None
 
-        return {
-            "success": True,
-            "status": "Invitation Sent",
-            "event_id": created_event.get("id", ""),
-            "event_link": created_event.get("htmlLink", ""),
-            "error": "",
-        }
-    except HttpError as error:
-        return {
-            "success": False,
-            "status": "Sync Failed",
-            "event_id": "",
-            "event_link": "",
-            "error": str(error),
-        }
-    except Exception as error:
-        return {
-            "success": False,
-            "status": "Sync Failed",
-            "event_id": "",
-            "event_link": "",
-            "error": str(error),
-        }
+    employee_email = employee.get("email", "").strip()
+
+    if not employee_email:
+        return None
+
+    return swms_user_by_email(employee_email)
 
 
 def task_calendar_event_body(task):
@@ -297,11 +294,18 @@ def task_calendar_event_body(task):
 
 
 def leave_calendar_event_body(leave):
-    """Prepare an all-day event covering every approved leave day."""
-    start_day = datetime.strptime(leave["start_date"], "%Y-%m-%d").date()
-    final_leave_day = datetime.strptime(leave["end_date"], "%Y-%m-%d").date()
+    """Prepare an all-day Google Calendar event for approved leave."""
+    start_day = datetime.strptime(
+        leave["start_date"],
+        "%Y-%m-%d",
+    ).date()
 
-    # Google Calendar all-day event end dates are exclusive.
+    final_leave_day = datetime.strptime(
+        leave["end_date"],
+        "%Y-%m-%d",
+    ).date()
+
+    # Google Calendar all-day event end date is exclusive.
     exclusive_end = final_leave_day + timedelta(days=1)
 
     return {
@@ -313,7 +317,7 @@ def leave_calendar_event_body(leave):
             f"Employee: {leave.get('employee_name', '')}\n"
             f"Leave type: {leave.get('leave_type', '')}\n"
             f"Duration: {leave.get('duration', '')} day(s)\n"
-            f"Status: Approved"
+            "Status: Approved"
         ),
         "start": {
             "date": start_day.isoformat(),
@@ -332,63 +336,171 @@ def leave_calendar_event_body(leave):
 
 
 def valid_google_attendee(user):
-    """Return True when a SWMS user has an email usable as an attendee."""
+    """Return True when the user has a valid attendee email."""
     email = (user or {}).get("email", "").strip()
-    return bool(email and "@" in email)
+
+    return bool(
+        email
+        and "@" in email
+        and "." in email.split("@")[-1]
+    )
 
 
 def unique_attendees(users, excluded_user_id=None):
-    """Build a duplicate-free Google Calendar attendee list."""
+    """Build a clean and duplicate-free Google attendee list."""
     attendees = []
     seen_emails = set()
 
     for user in users:
         if not user:
             continue
-        if excluded_user_id is not None and user.get("id") == excluded_user_id:
+
+        if (
+            excluded_user_id is not None
+            and user.get("id") == excluded_user_id
+        ):
             continue
+
         if not valid_google_attendee(user):
             continue
 
-        email = user["email"].strip().lower()
+        email = user.get("email", "").strip().lower()
+
         if email in seen_emails:
             continue
 
         seen_emails.add(email)
+
         attendees.append(
             {
-                "email": user["email"].strip(),
-                "displayName": user.get("name", ""),
+                "email": email,
+                "displayName": user.get("name", "").strip(),
             }
         )
 
     return attendees
 
 
+def create_google_calendar_event(
+    user_id,
+    event_body,
+    send_updates="none",
+):
+    """
+    Insert an event into the connected organizer's primary calendar.
+
+    The connected manager/admin becomes the organizer. Invitation emails
+    are sent only to addresses inside event_body["attendees"].
+    """
+    service = google_calendar_service(user_id)
+
+    if not service:
+        return {
+            "success": False,
+            "status": "Organizer Not Connected",
+            "event_id": "",
+            "event_link": "",
+            "error": "The organizer has not connected Google Calendar.",
+        }
+
+    try:
+        # Copy the body to avoid changing the original dictionary.
+        final_event_body = dict(event_body)
+
+        cleaned_attendees = []
+        seen_emails = set()
+
+        for attendee in final_event_body.get("attendees", []):
+            email = str(
+                attendee.get("email", "")
+            ).strip().lower()
+
+            if not email or "@" not in email:
+                continue
+
+            if email in seen_emails:
+                continue
+
+            seen_emails.add(email)
+
+            cleaned_attendees.append(
+                {
+                    "email": email,
+                    "displayName": str(
+                        attendee.get("displayName", "")
+                    ).strip(),
+                }
+            )
+
+        final_event_body["attendees"] = cleaned_attendees
+
+        print("========== GOOGLE CALENDAR ==========")
+        print("ORGANIZER USER ID:", user_id)
+        print("EVENT:", final_event_body.get("summary", ""))
+        print("INVITATION RECIPIENTS:", cleaned_attendees)
+        print("=====================================")
+
+        created_event = (
+            service.events()
+            .insert(
+                calendarId="primary",
+                body=final_event_body,
+                sendUpdates=(
+                    "all"
+                    if cleaned_attendees
+                    else "none"
+                ),
+            )
+            .execute()
+        )
+
+        return {
+            "success": True,
+            "status": (
+                "Invitation Sent"
+                if cleaned_attendees
+                else "Event Created"
+            ),
+            "event_id": created_event.get("id", ""),
+            "event_link": created_event.get("htmlLink", ""),
+            "error": "",
+            "attendees": cleaned_attendees,
+        }
+
+    except HttpError as error:
+        print("GOOGLE CALENDAR HTTP ERROR:", error)
+
+        return {
+            "success": False,
+            "status": "Sync Failed",
+            "event_id": "",
+            "event_link": "",
+            "error": str(error),
+        }
+
+    except Exception as error:
+        print("GOOGLE CALENDAR ERROR:", error)
+
+        return {
+            "success": False,
+            "status": "Sync Failed",
+            "event_id": "",
+            "event_link": "",
+            "error": str(error),
+        }
+
+
 def sync_task_calendar_invitation(task, organizer):
     """
-    Create the task on the connected manager/admin calendar and invite only
-    the assigned employee. Google sends the employee an invitation email.
-    """
-    assigned_user = swms_user_by_name(task.get("assigned_to", ""))
+    Create a task event and invite only the assigned employee.
 
-    if not assigned_user:
-        result = {
-            "success": False,
-            "status": "Employee Account Not Found",
-            "event_id": "",
-            "event_link": "",
-            "error": "No SWMS user account matches the assigned employee.",
-        }
-    elif not valid_google_attendee(assigned_user):
-        result = {
-            "success": False,
-            "status": "Employee Email Missing",
-            "event_id": "",
-            "event_link": "",
-            "error": "The assigned employee does not have a valid email.",
-        }
-    elif not organizer:
+    The recipient is selected using the employee email, not only the name.
+    """
+    assigned_user = calendar_user_for_employee_name(
+        task.get("assigned_to", "")
+    )
+
+    if not organizer:
         result = {
             "success": False,
             "status": "Organizer Not Found",
@@ -396,16 +508,49 @@ def sync_task_calendar_invitation(task, organizer):
             "event_link": "",
             "error": "The manager/admin account could not be found.",
         }
+
+    elif not assigned_user:
+        result = {
+            "success": False,
+            "status": "Employee Account Not Found",
+            "event_id": "",
+            "event_link": "",
+            "error": (
+                "No SWMS login account matches the assigned "
+                "employee email address."
+            ),
+        }
+
+    elif not valid_google_attendee(assigned_user):
+        result = {
+            "success": False,
+            "status": "Employee Email Missing",
+            "event_id": "",
+            "event_link": "",
+            "error": "The assigned employee email is invalid.",
+        }
+
     else:
-        existing = task.get("google_calendar_invitation", {})
+        existing = task.get(
+            "google_calendar_invitation",
+            {},
+        )
+
         if existing.get("event_id"):
             return existing
 
         try:
             event_body = task_calendar_event_body(task)
+
             event_body["attendees"] = unique_attendees(
                 [assigned_user],
                 excluded_user_id=organizer.get("id"),
+            )
+
+            print(
+                "TASK EMPLOYEE ACCOUNT:",
+                assigned_user.get("name"),
+                assigned_user.get("email"),
             )
 
             result = create_google_calendar_event(
@@ -413,6 +558,7 @@ def sync_task_calendar_invitation(task, organizer):
                 event_body,
                 send_updates="all",
             )
+
         except (KeyError, ValueError) as error:
             result = {
                 "success": False,
@@ -424,23 +570,157 @@ def sync_task_calendar_invitation(task, organizer):
 
     task["google_calendar_invitation"] = {
         "status": result["status"],
-        "organizer_user_id": organizer.get("id") if organizer else None,
-        "organizer_name": organizer.get("name", "") if organizer else "",
-        "attendee_user_id": assigned_user.get("id") if assigned_user else None,
-        "attendee_name": assigned_user.get("name", "") if assigned_user else "",
-        "attendee_email": assigned_user.get("email", "") if assigned_user else "",
-        "event_id": result["event_id"],
-        "event_link": result["event_link"],
-        "error": result["error"],
+        "organizer_user_id": (
+            organizer.get("id")
+            if organizer
+            else None
+        ),
+        "organizer_name": (
+            organizer.get("name", "")
+            if organizer
+            else ""
+        ),
+        "attendee_user_id": (
+            assigned_user.get("id")
+            if assigned_user
+            else None
+        ),
+        "attendee_name": (
+            assigned_user.get("name", "")
+            if assigned_user
+            else ""
+        ),
+        "attendee_email": (
+            assigned_user.get("email", "")
+            if assigned_user
+            else ""
+        ),
+        "event_id": result.get("event_id", ""),
+        "event_link": result.get("event_link", ""),
+        "error": result.get("error", ""),
         "synced_at": (
             datetime.now().isoformat(timespec="seconds")
-            if result["success"]
+            if result.get("success")
             else ""
         ),
     }
 
-    print("Calendar sync completed without full database persistence.")
     return task["google_calendar_invitation"]
+
+
+def approved_leave_invitation_users(leave, organizer):
+    """
+    Return only the employee whose leave was approved.
+
+    Other managers and admins are no longer added as attendees.
+    """
+    employee_user = calendar_user_for_employee_name(
+        leave.get("employee_name", "")
+    )
+
+    return unique_attendees(
+        [employee_user],
+        excluded_user_id=(
+            organizer.get("id")
+            if organizer
+            else None
+        ),
+    )
+
+
+def sync_approved_leave_calendar_invitation(leave, organizer):
+    """
+    Create an approved-leave event and invite only the employee.
+    """
+    existing = leave.get(
+        "google_calendar_invitation",
+        {},
+    )
+
+    if existing.get("event_id"):
+        return existing
+
+    if not organizer:
+        attendees = []
+
+        result = {
+            "success": False,
+            "status": "Organizer Not Found",
+            "event_id": "",
+            "event_link": "",
+            "error": "The approving manager/admin account was not found.",
+        }
+
+    else:
+        attendees = approved_leave_invitation_users(
+            leave,
+            organizer,
+        )
+
+        if not attendees:
+            result = {
+                "success": False,
+                "status": "Employee Email Not Found",
+                "event_id": "",
+                "event_link": "",
+                "error": (
+                    "The employee account or employee email "
+                    "could not be found."
+                ),
+            }
+
+        else:
+            try:
+                event_body = leave_calendar_event_body(leave)
+                event_body["attendees"] = attendees
+
+                print(
+                    "LEAVE INVITATION RECIPIENTS:",
+                    attendees,
+                )
+
+                result = create_google_calendar_event(
+                    organizer["id"],
+                    event_body,
+                    send_updates="all",
+                )
+
+            except (KeyError, ValueError) as error:
+                result = {
+                    "success": False,
+                    "status": "Invalid Leave Dates",
+                    "event_id": "",
+                    "event_link": "",
+                    "error": str(error),
+                }
+
+    leave["google_calendar_invitation"] = {
+        "status": result["status"],
+        "organizer_user_id": (
+            organizer.get("id")
+            if organizer
+            else None
+        ),
+        "organizer_name": (
+            organizer.get("name", "")
+            if organizer
+            else ""
+        ),
+        "attendee_emails": [
+            attendee.get("email", "")
+            for attendee in attendees
+        ],
+        "event_id": result.get("event_id", ""),
+        "event_link": result.get("event_link", ""),
+        "error": result.get("error", ""),
+        "synced_at": (
+            datetime.now().isoformat(timespec="seconds")
+            if result.get("success")
+            else ""
+        ),
+    }
+
+    return leave["google_calendar_invitation"]
 
 
 def approved_leave_invitation_users(leave, organizer):
