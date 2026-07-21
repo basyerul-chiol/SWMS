@@ -8,3 +8,4 @@ venv/
 .venv/
 static/uploads/profile/*
 !static/uploads/profile/.gitkeep
+storage/swms_data.json

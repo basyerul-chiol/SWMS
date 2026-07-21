@@ -256,12 +256,24 @@ def calendar_user_for_employee_name(employee_name):
     if not employee:
         return None
 
-    employee_email = employee.get("email", "").strip()
+    employee_email = employee.get("email", "").strip().lower()
 
     if not employee_email:
         return None
 
-    return swms_user_by_email(employee_email)
+    matched_user = swms_user_by_email(employee_email)
+
+    if matched_user:
+        return matched_user
+
+    return {
+        "id": employee.get("id"),
+        "name": employee.get("name",""),
+        "email": employee_email,
+        "role": "employee",
+    }
+
+    
 
 
 def task_calendar_event_body(task):
@@ -500,6 +512,8 @@ def sync_task_calendar_invitation(task, organizer):
         task.get("assigned_to", "")
     )
 
+
+
     if not organizer:
         result = {
             "success": False,
@@ -542,10 +556,13 @@ def sync_task_calendar_invitation(task, organizer):
         try:
             event_body = task_calendar_event_body(task)
 
-            event_body["attendees"] = unique_attendees(
-                [assigned_user],
-                excluded_user_id=organizer.get("id"),
-            )
+            assigned_email = str(assigned_user.get("email") or "").strip().lower()
+
+            event_body["attendees"] = [
+                {
+                    "email": assigned_email
+                }
+            ]
 
             print(
                 "TASK EMPLOYEE ACCOUNT:",

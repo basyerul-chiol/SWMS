@@ -633,6 +633,17 @@ def load_data(namespace):
     except Exception as error:
         connection.rollback()
         print(f"❌ MySQL load/migration failed: {error}")
+
+        # Fallback ke JSON
+        if STORAGE_FILE.exists():
+            try:
+                payload = json.loads(STORAGE_FILE.read_text(encoding="utf-8"))
+                _apply_payload(namespace, payload)
+                print("✅ Loaded emergency JSON backup.")
+                return True
+            except Exception as e:
+                print(e)
+
         return False
     finally:
         cursor.close()
