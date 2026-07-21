@@ -439,7 +439,7 @@ def sync_task_calendar_invitation(task, organizer):
         ),
     }
 
-    persist_data()
+    print("Calendar sync completed without full database persistence.")
     return task["google_calendar_invitation"]
 
 
@@ -526,7 +526,7 @@ def sync_approved_leave_calendar_invitation(leave, organizer):
         ),
     }
 
-    persist_data()
+    #persist_data()
     return leave["google_calendar_invitation"]
 
 
@@ -782,7 +782,8 @@ def refresh_task_deadlines():
                 task["status"] = "Overdue"
                 changed = True
     if changed:
-        persist_data()
+        #persist_data()
+        pass
 
 
 @app.before_request
@@ -1795,7 +1796,7 @@ def create_task():
         )
         delivery_category = "warning"
 
-    persist_data()
+    #persist_data()
     flash("Task created. " + "; ".join(delivery_notes) + ".", delivery_category)
 
     return redirect(url_for("manager_dashboard"))
@@ -1864,7 +1865,7 @@ def manage_leave(leave_id, action):
         status = "Success"
 
         # Persist immediately instead of relying on a later audit-log write.
-        persist_data()
+        #persist_data()
 
         # The approving manager/admin organizes one event. Employee, other
         # managers and admins receive Google invitation emails.
@@ -1918,7 +1919,7 @@ def manage_leave(leave_id, action):
         )
 
     add_audit_entry(audit_message, "Leave Management", action.upper(), status)
-    persist_data()
+    #persist_data()
     flash(success_message, "success" if whatsapp_result.get("success") else "warning")
     return redirect(url_for("manager_dashboard"))
 
@@ -2261,7 +2262,7 @@ def mark_notification_read(notification_id):
     if note:
         note["read"] = True
         note["status"] = "Read"
-        persist_data()
+        #persist_data()
         target = note.get("link") or url_for("dashboard")
         return redirect(target)
     return redirect(url_for("dashboard"))
@@ -2274,7 +2275,7 @@ def mark_all_notifications_read():
     for note in user_notifications():
         note["read"] = True
         note["status"] = "Read"
-    persist_data()
+    #persist_data()
     flash("All notifications marked as read.", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
