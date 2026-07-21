@@ -28,7 +28,7 @@ from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from storage import save_data, load_data
+from SWMS_LAST_FINAL.storage import save_data, load_data, save_audit_entry
 import data as data_store
 from notification_service import send_task_assignment, send_leave_status
 
@@ -747,21 +747,22 @@ def add_notification(recipient_role, title, detail, link="", recipient_name=""):
 
 def add_audit_entry(message, module, action, status):
     user = current_user()
-    AUDIT_LOGS.insert(
-        0,
-        {
-            "id": next_id(AUDIT_LOGS),
-            "message": message,
-            "actor": user["name"] if user else "System",
-            "role": session.get("role", "system"),
-            "module": module,
-            "action": action,
-            "status": status,
-            "timestamp": datetime.now().strftime("%d %b %Y, %I:%M %p"),
-            "ip_address": request.headers.get("X-Forwarded-For", request.remote_addr or "Local"),
-        },
-    )
-    persist_data()
+    entry = {
+        "id": next_id(AUDIT_LOGS),
+        "message": message,
+        "actor": user["name"] if user else "System",
+        "role": session.get("role", "system"),
+        "module": module,
+        "action": action,
+        "status": status,
+        "timestamp": datetime.now().strftime("%d %b %Y, %I:%M %p"),
+        "ip_address": request.headers.get("X-Forwarded-For", request.remote_addr or "Local"),
+    }
+    AUDIT_LOGS.insert(0, entry)
+
+    # Do not run persist_data() here. It rebuilds all normalized tables and can
+    # exceed Gunicorn's request timeout when MySQL is hosted remotely.
+    save_audit_entry(entry)
 
 
 def user_notifications():

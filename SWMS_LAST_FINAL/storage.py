@@ -639,6 +639,56 @@ def load_data(namespace):
         connection.close()
 
 
+
+def save_audit_entry(entry):
+    """Insert one audit record without rebuilding every normalized table.
+
+    This is intentionally lightweight for request paths such as login/logout.
+    A full save_data() sync can take too long against a remote cloud database.
+    """
+    connection = get_db_connection()
+    if connection is None:
+        return False
+
+    cursor = connection.cursor(dictionary=True)
+    try:
+        actor_name = entry.get("actor") or "System"
+        cursor.execute(
+            "SELECT user_id FROM users WHERE full_name = %s LIMIT 1",
+            (actor_name,),
+        )
+        row = cursor.fetchone()
+        actor_user_id = int(row["user_id"]) if row else None
+
+        cursor.execute(
+            """
+            INSERT INTO audit_logs (
+                actor_user_id, actor_name, module_name, action_type,
+                description, ip_address, action_status, created_at
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,NOW())
+            """,
+            (
+                actor_user_id,
+                actor_name,
+                entry.get("module") or "System",
+                entry.get("action") or "UPDATE",
+                entry.get("message") or "SWMS action",
+                entry.get("ip_address") or None,
+                "success"
+                if str(entry.get("status", "success")).lower() == "success"
+                else "failed",
+            ),
+        )
+        connection.commit()
+        return True
+    except Exception as error:
+        connection.rollback()
+        print(f"⚠️ Audit log insert failed: {error}")
+        return False
+    finally:
+        cursor.close()
+        connection.close()
+
 def save_data(namespace):
     """Save the complete app state and normalized mirror to MySQL."""
     payload = _payload_from_namespace(namespace)
