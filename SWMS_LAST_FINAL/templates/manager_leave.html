@@ -1,0 +1,80 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Approvals | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--manager">
+    <div class="topbar-left">
+        <div class="search-block">
+            <input type="search" placeholder="Search leave requests..." aria-label="Search leave requests">
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--manager">
+        <button type="button" class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0:2]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>Manager · {{ current_user.role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Leave Approvals</p>
+            <h2>Manage pending leave requests</h2>
+        </div>
+        <a class="topbar-btn" href="{{ url_for('manager_dashboard') }}">Back to Dashboard</a>
+    </div>
+
+    <div class="approval-table-wrap">
+        <table class="approval-table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Type</th>
+                    <th>Dates</th>
+                    <th>Days</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for leave in leave_requests %}
+                <tr>
+                    <td class="employee-cell"><span class="avatar">{{ leave.employee_name[0:2]|upper }}</span><div><strong>{{ leave.employee_name }}</strong><span>{{ leave.leave_type }}</span></div></td>
+                    <td>{{ leave.leave_type }}</td>
+                    <td>{{ leave.start_date }} → {{ leave.end_date }}</td>
+                    <td>{{ leave.duration }} day{{ 's' if leave.duration != 1 }}</td>
+                    <td><span class="status-pill status-pill--{{ leave.status|lower }}">{{ leave.status }}</span></td>
+                    <td>
+                        {% if leave.status == 'Pending' %}
+                        <div class="action-group">
+                            <form method="post" action="{{ url_for('manage_leave', leave_id=leave.id, action='approve') }}">
+                                <button type="submit" class="btn btn-approve">Approve</button>
+                            </form>
+                            <form method="post" action="{{ url_for('manage_leave', leave_id=leave.id, action='reject') }}">
+                                <button type="submit" class="btn btn-reject">Reject</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <span class="status-pill status-pill--approved">Processed</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6">No leave requests available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

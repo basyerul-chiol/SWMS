@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}{{ code }} · SWMS{% endblock %}
+{% block sidebar %}{% if current_user %}{{ super() }}{% endif %}{% endblock %}
+{% block navbar %}{% if current_user %}{{ super() }}{% endif %}{% endblock %}
+{% block content %}
+<section class="error-state">
+    <span class="error-state__code">{{ code }}</span>
+    <h1>{{ title }}</h1>
+    <p>{{ message }}</p>
+    <a class="btn btn-primary" href="{{ url_for('dashboard') if current_user else url_for('login') }}">Return to dashboard</a>
+</section>
+{% endblock %}

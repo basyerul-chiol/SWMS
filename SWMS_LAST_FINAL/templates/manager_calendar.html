@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Calendar | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--manager">
+    <div class="topbar-left">
+        <div class="search-block">
+            <input type="search" placeholder="Search schedule..." aria-label="Search schedule">
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--manager">
+        <button type="button" class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0:2]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>Manager · {{ current_user.role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Team Calendar</p>
+            <h2>Upcoming deadlines</h2>
+        </div>
+        <a class="topbar-btn" href="{{ url_for('manager_dashboard') }}">Overview</a>
+    </div>
+
+    <section class="panel-card">
+        <div class="panel-header"><h4>Upcoming Task Deadlines</h4></div>
+        {% if tasks %}
+            <ul class="task-list">
+                {% for task in tasks %}
+                <li class="task-card">
+                    <div class="task-card-header">
+                        <div>
+                            <h5>{{ task.title }}</h5>
+                            <p>{{ task.assigned_to }} · {{ task.priority }}</p>
+                        </div>
+                        <span class="task-status task-status--{{ task.status|lower|replace(' ', '-') }}">{{ task.status }}</span>
+                    </div>
+                    <p class="progress-label">Due {{ task.deadline }}</p>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No scheduled tasks found.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

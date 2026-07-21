@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Form | SWMS{% endblock %}
+
+{% block sidebar %}
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-mark">SW</div>
+        <div>
+            <h2>SWMS</h2>
+            <p>Workforce Hub</p>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="{{ url_for('admin_dashboard', section='employees') }}" class="nav-item">Employees</a>
+        <a href="{{ url_for('admin_dashboard', section='integrations') }}" class="nav-item">Integrations</a>
+        <a href="{{ url_for('admin_dashboard', section='settings') }}" class="nav-item">Settings</a>
+        <a href="{{ url_for('admin_dashboard', section='audit') }}" class="nav-item">Audit</a>
+        <a href="{{ url_for('logout') }}" class="nav-item">Logout</a>
+    </nav>
+</aside>
+{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left">
+        <div class="search-block">
+            <input type="search" placeholder="Search employee records..." aria-label="Search">
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--dashboard">
+        <button class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0:2]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>{{ current_user.role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Employee Management</p>
+            <h2>{% if employee %}Edit employee{% else %}Add new employee{% endif %}</h2>
+        </div>
+    </div>
+    <form method="post" class="form-grid" action="{{ form_action }}">
+        <label>
+            Full name
+            <input type="text" name="name" value="{{ employee.name if employee else '' }}" required>
+        </label>
+        <label>
+            Email address
+            <input type="email" name="email" value="{{ employee.email if employee else '' }}" required>
+        </label>
+        <label>
+            WhatsApp number
+            <input type="tel" name="phone" value="{{ employee.phone if employee and employee.phone else '' }}" placeholder="Example: 0169045976 or +60169045976">
+            <small>For Twilio Sandbox, this number must join your WhatsApp Sandbox first.</small>
+        </label>
+        <label>
+            Department
+            <select name="department" required>
+                {% for department in departments %}
+                <option value="{{ department.name }}" {% if employee and employee.department == department.name %}selected{% endif %}>{{ department.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Position
+            <input type="text" name="position" value="{{ employee.position if employee else '' }}" required>
+        </label>
+        <label>
+            Role
+            <select name="role">
+                <option value="Employee" {% if employee and employee.role == 'Employee' %}selected{% endif %}>Employee</option>
+                <option value="Manager" {% if employee and employee.role == 'Manager' %}selected{% endif %}>Manager</option>
+                <option value="Administrator" {% if employee and employee.role == 'Administrator' %}selected{% endif %}>Administrator</option>
+            </select>
+        </label>
+        {% if employee %}
+        <label>
+            Status
+            <select name="status">
+                <option value="Active" {% if employee.status == 'Active' %}selected{% endif %}>Active</option>
+                <option value="On Leave" {% if employee.status == 'On Leave' %}selected{% endif %}>On Leave</option>
+                <option value="Inactive" {% if employee.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </label>
+        {% endif %}
+        <div class="form-actions full-width">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

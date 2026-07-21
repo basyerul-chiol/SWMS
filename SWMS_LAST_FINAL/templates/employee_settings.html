@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Settings | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left">
+        <div>
+            <p class="settings-top-label">Personal settings</p>
+            <h1>Settings</h1>
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--dashboard">
+        <a class="topbar-btn" href="{{ url_for('employee_dashboard') }}">Back to Dashboard</a>
+        <button type="button" class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <small>{{ current_role|capitalize }}</small>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+    <section class="settings-hero">
+        <div>
+            <span class="settings-badge">Preferences</span>
+            <h2>Control how SWMS keeps you updated</h2>
+            <p>Choose the notifications you want to receive. Changes are applied after you save.</p>
+        </div>
+        <div class="settings-hero-icon" aria-hidden="true">⚙</div>
+    </section>
+
+    <form method="post" class="settings-form">
+        <section class="settings-card">
+            <div class="settings-card-header">
+                <div class="settings-icon settings-icon--blue">✉</div>
+                <div>
+                    <h3>Notification channels</h3>
+                    <p>Manage where important workforce updates are delivered.</p>
+                </div>
+            </div>
+
+            <div class="settings-list">
+                <label class="setting-item">
+                    <div class="setting-copy">
+                        <strong>Email notifications</strong>
+                        <span>Receive leave, task and account updates by email.</span>
+                    </div>
+                    <span class="switch-control">
+                        <input type="checkbox" name="email_notifications" {% if settings.email %}checked{% endif %}>
+                        <span class="switch-slider"></span>
+                    </span>
+                </label>
+
+                <label class="setting-item">
+                    <div class="setting-copy">
+                        <strong>WhatsApp notifications</strong>
+                        <span>Receive selected alerts through WhatsApp.</span>
+                    </div>
+                    <span class="switch-control">
+                        <input type="checkbox" name="whatsapp_notifications" {% if settings.whatsapp %}checked{% endif %}>
+                        <span class="switch-slider"></span>
+                    </span>
+                </label>
+
+                <label class="setting-item">
+                    <div class="setting-copy">
+                        <strong>Task reminders</strong>
+                        <span>Get reminders before tasks reach their deadlines.</span>
+                    </div>
+                    <span class="switch-control">
+                        <input type="checkbox" name="reminders" {% if settings.reminders %}checked{% endif %}>
+                        <span class="switch-slider"></span>
+                    </span>
+                </label>
+            </div>
+        </section>
+
+        <div class="settings-actions">
+            <a class="btn btn-secondary" href="{{ url_for('employee_dashboard') }}">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

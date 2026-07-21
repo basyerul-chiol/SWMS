@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Google Calendar | SWMS{% endblock %}
+
+{% block content %}
+<style>
+    .calendar-integration-page {
+        max-width: 900px;
+        margin: 0 auto;
+        display: grid;
+        gap: 20px;
+    }
+
+    .integration-card {
+        background: #ffffff;
+        border: 1px solid #dfe6f1;
+        border-radius: 20px;
+        padding: 28px;
+    }
+
+    .integration-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .integration-heading p {
+        color: #64748b;
+        line-height: 1.7;
+        margin-bottom: 0;
+    }
+
+    .connection-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .connection-badge--connected {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .connection-badge--disconnected {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .integration-flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 24px;
+    }
+
+    .flow-item {
+        padding: 18px;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .flow-item strong {
+        display: block;
+        margin-bottom: 7px;
+    }
+
+    .flow-item span {
+        color: #64748b;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .integration-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .integration-button {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 18px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font: inherit;
+        font-weight: 800;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .integration-button--primary {
+        background: #2563eb;
+        color: #ffffff;
+    }
+
+    .integration-button--secondary {
+        background: #ffffff;
+        color: #334155;
+        border-color: #cfd8e6;
+    }
+
+    .integration-button--danger {
+        background: #ffffff;
+        color: #dc2626;
+        border-color: #fecaca;
+    }
+
+    .warning-box {
+        margin-top: 20px;
+        padding: 15px 17px;
+        border-radius: 13px;
+        background: #fff7ed;
+        color: #9a3412;
+        line-height: 1.6;
+    }
+
+    @media (max-width: 760px) {
+        .integration-heading {
+            flex-direction: column;
+        }
+
+        .integration-flow {
+            grid-template-columns: 1fr;
+        }
+
+        .integration-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<section class="calendar-integration-page">
+    <div class="integration-card">
+        <div class="integration-heading">
+            <div>
+                <p class="eyebrow">MOBILE INTEGRATION</p>
+                <h2>Google Calendar</h2>
+                <p>
+                    Managers and admins connect the Google account used on their phone. They become event organizers, while employees receive invitation emails at the email address stored in SWMS.
+                </p>
+            </div>
+
+            {% if connected %}
+                <span class="connection-badge connection-badge--connected">
+                    Connected
+                </span>
+            {% else %}
+                <span class="connection-badge connection-badge--disconnected">
+                    Not connected
+                </span>
+            {% endif %}
+        </div>
+
+        {% if not credentials_file_exists %}
+            <div class="warning-box">
+                <strong>Google OAuth is not configured.</strong>
+                Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI to the server environment.
+            </div>
+        {% endif %}
+
+        <div class="integration-flow">
+            <div class="flow-item">
+                <strong>Employee task</strong>
+                <span>
+                    The connected manager creates the event and Google emails an invitation to the assigned employee.
+                </span>
+            </div>
+
+            <div class="flow-item">
+                <strong>Approved leave</strong>
+                <span>
+                    The approving manager creates one event and invites the employee, other managers and admins.
+                </span>
+            </div>
+
+            <div class="flow-item">
+                <strong>Safe workflow</strong>
+                <span>
+                    Core SWMS actions still succeed if Calendar fails, and the system shows a warning instead of losing the task or leave approval.
+                </span>
+            </div>
+        </div>
+
+        <div class="integration-actions">
+            {% if connected %}
+                <form method="POST" action="{{ url_for('google_calendar_test') }}">
+                    <button type="submit" class="integration-button integration-button--secondary">
+                        Add Test Event
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ url_for('google_calendar_disconnect') }}">
+                    <button type="submit" class="integration-button integration-button--danger">
+                        Disconnect
+                    </button>
+                </form>
+            {% else %}
+                <a
+                    href="{{ url_for('google_calendar_connect') }}"
+                    class="integration-button integration-button--primary"
+                >
+                    Connect Google Calendar
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="integration-card">
+        <p class="eyebrow">ACCOUNT</p>
+        <h3>{{ user.name }}</h3>
+        <p style="color: #64748b; margin-bottom: 0;">
+            {{ user.email }} · {{ user.role|capitalize }}
+        </p>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Settings | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--manager">
+    <div class="topbar-left">
+        <div>
+            <p class="settings-top-label">Workspace preferences</p>
+            <h1>Manager Settings</h1>
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--manager">
+        <button type="button" class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0:2]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <small>Manager</small>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+    <section class="settings-hero">
+        <div>
+            <span class="settings-badge">Manager workspace</span>
+            <h2>Personalise your management experience</h2>
+            <p>Configure notifications and work preferences for your manager account.</p>
+        </div>
+        <div class="settings-hero-icon" aria-hidden="true">⚙</div>
+    </section>
+
+    <form method="post" class="settings-form">
+        <div class="settings-grid">
+            <section class="settings-card">
+                <div class="settings-card-header">
+                    <div class="settings-icon settings-icon--blue">🔔</div>
+                    <div>
+                        <h3>Notifications</h3>
+                        <p>Choose which manager alerts you receive.</p>
+                    </div>
+                </div>
+
+                <div class="settings-list">
+                    <label class="setting-item">
+                        <div class="setting-copy"><strong>Email alerts</strong><span>Approvals, escalations and task updates.</span></div>
+                        <span class="switch-control"><input type="checkbox" name="email_notifications" {% if settings.notifications.email %}checked{% endif %}><span class="switch-slider"></span></span>
+                    </label>
+                    <label class="setting-item">
+                        <div class="setting-copy"><strong>WhatsApp reminders</strong><span>Urgent reminders through WhatsApp.</span></div>
+                        <span class="switch-control"><input type="checkbox" name="whatsapp_notifications" {% if settings.notifications.whatsapp %}checked{% endif %}><span class="switch-slider"></span></span>
+                    </label>
+                    <label class="setting-item">
+                        <div class="setting-copy"><strong>Task reminders</strong><span>Deadline and overdue task reminders.</span></div>
+                        <span class="switch-control"><input type="checkbox" name="reminders" {% if settings.notifications.reminders %}checked{% endif %}><span class="switch-slider"></span></span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="settings-card">
+                <div class="settings-card-header">
+                    <div class="settings-icon settings-icon--purple">◷</div>
+                    <div>
+                        <h3>Work preferences</h3>
+                        <p>Set the time and workweek displayed in SWMS.</p>
+                    </div>
+                </div>
+
+                <div class="settings-fields">
+                    <label class="settings-field">
+                        <span>Time zone</span>
+                        <select name="timezone">
+                            {% for timezone in ['UTC', 'Asia/Kuala_Lumpur', 'Asia/Singapore', 'Asia/Jakarta'] %}
+                            <option value="{{ timezone }}" {% if settings.system.timezone == timezone %}selected{% endif %}>{{ timezone }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="settings-field">
+                        <span>Work week</span>
+                        <select name="workweek">
+                            {% for workweek in ['Mon-Fri', 'Sun-Thu', 'Mon-Sat'] %}
+                            <option value="{{ workweek }}" {% if settings.system.workweek == workweek %}selected{% endif %}>{{ workweek }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+            </section>
+        </div>
+
+        <div class="settings-actions">
+            <a class="btn btn-secondary" href="{{ url_for('manager_dashboard') }}">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save settings</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

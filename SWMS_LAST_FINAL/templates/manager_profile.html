@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Profile | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--manager">
+    <div class="topbar-left">
+        <div class="search-block">
+            <input type="search" placeholder="Search profile details..." aria-label="Search profile details">
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--manager">
+        <button type="button" class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0:2]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>Manager · {{ current_user.role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Manager Profile</p>
+            <h2>{{ current_user.name }}</h2>
+        </div>
+        <a class="topbar-btn" href="{{ url_for('manager_dashboard') }}">Dashboard</a>
+    </div>
+
+    <section class="panel-card">
+        <div class="panel-header"><h4>Personal Information</h4></div>
+        <div class="info-row"><strong>Full Name</strong><span>{{ current_user.name }}</span></div>
+        <div class="info-row"><strong>Email</strong><span>{{ current_user.email }}</span></div>
+        <div class="info-row"><strong>Role</strong><span>{{ current_user.role|capitalize }}</span></div>
+    </section>
+</div>
+{% endblock %}

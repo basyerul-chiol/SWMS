@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}SWMS Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Overview</p>
+            <h2>Welcome back</h2>
+        </div>
+        <button class="primary-btn">View Reports</button>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Active Employees</h3>
+            <p class="stat-value">248</p>
+        </div>
+        <div class="stat-card">
+            <h3>Open Shifts</h3>
+            <p class="stat-value">37</p>
+        </div>
+        <div class="stat-card">
+            <h3>Attendance Rate</h3>
+            <p class="stat-value">96%</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+.env
+credentials.json
+google_tokens/
+storage/google_tokens/
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+static/uploads/profile/*
+!static/uploads/profile/.gitkeep

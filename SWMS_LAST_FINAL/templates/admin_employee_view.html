@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Profile | SWMS{% endblock %}
+
+{% block sidebar %}
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-mark">SW</div>
+        <div>
+            <h2>SWMS</h2>
+            <p>Workforce Hub</p>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="{{ url_for('admin_dashboard', section='employees') }}" class="nav-item">Employees</a>
+        <a href="{{ url_for('admin_dashboard', section='integrations') }}" class="nav-item">Integrations</a>
+        <a href="{{ url_for('admin_dashboard', section='settings') }}" class="nav-item">Settings</a>
+        <a href="{{ url_for('admin_dashboard', section='audit') }}" class="nav-item">Audit</a>
+        <a href="{{ url_for('logout') }}" class="nav-item">Logout</a>
+    </nav>
+</aside>
+{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left">
+        <div class="search-block">
+            <input type="search" placeholder="Search employees..." aria-label="Search">
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--dashboard">
+        <button class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0:2]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>{{ current_user.role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Employee Profile</p>
+            <h2>{{ employee.name }}</h2>
+        </div>
+        <div>
+            <a href="{{ url_for('admin_edit_employee', employee_id=employee.id) }}" class="btn btn-secondary">Edit</a>
+            <form method="post" action="{{ url_for('admin_deactivate_employee', employee_id=employee.id) }}" class="inline-form">
+                <button type="submit" class="btn btn-warning">Deactivate</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <section class="panel-card">
+            <div class="panel-header"><h4>Employee Details</h4></div>
+            <div class="info-row"><strong>Employee ID</strong><span>{{ employee.employee_id }}</span></div>
+            <div class="info-row"><strong>Email</strong><span>{{ employee.email }}</span></div>
+            <div class="info-row"><strong>Department</strong><span>{{ employee.department }}</span></div>
+            <div class="info-row"><strong>Position</strong><span>{{ employee.position }}</span></div>
+            <div class="info-row"><strong>Role</strong><span>{{ employee.role }}</span></div>
+            <div class="info-row"><strong>Status</strong><span>{{ employee.status }}</span></div>
+            <div class="info-row"><strong>Joined</strong><span>{{ employee.joined }}</span></div>
+        </section>
+
+        <section class="panel-card">
+            <div class="panel-header"><h4>Actions</h4></div>
+            <form method="post" action="{{ url_for('admin_delete_employee', employee_id=employee.id) }}">
+                <button type="submit" class="btn btn-danger">Delete Employee</button>
+            </form>
+        </section>
+    </div>
+</div>
+{% endblock %}

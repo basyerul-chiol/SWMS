@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}My Tasks | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left">
+        <div class="search-block">
+            <form method="get" action="{{ url_for('employee_tasks') }}">
+                <input type="search" name="search" value="{{ search }}" placeholder="Search tasks..." aria-label="Search">
+            </form>
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--dashboard">
+        <button class="topbar-btn"><a href="{{ url_for('employee_dashboard') }}">Back to Dashboard</a></button>
+        <button class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>{{ current_role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Task Tracking</p>
+            <h2>My tasks and progress</h2>
+        </div>
+    </div>
+
+    <div class="filter-row">
+        <form method="get" class="filter-form" action="{{ url_for('employee_tasks') }}">
+            <input type="search" name="search" value="{{ search }}" placeholder="Filter by title, priority or status">
+            <select name="status">
+                <option value="All" {% if status_filter == 'All' %}selected{% endif %}>Status: All</option>
+                <option value="Not Started" {% if status_filter == 'Not Started' %}selected{% endif %}>Not Started</option>
+                <option value="In Progress" {% if status_filter == 'In Progress' %}selected{% endif %}>In Progress</option>
+                <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+                <option value="Overdue" {% if status_filter == 'Overdue' %}selected{% endif %}>Overdue</option>
+            </select>
+            <button type="submit" class="btn btn-secondary">Apply</button>
+        </form>
+    </div>
+
+    <div class="task-list">
+        {% for task in tasks %}
+        <article class="task-card">
+            <div class="task-card-header">
+                <div>
+                    <h5>{{ task.title }}</h5>
+                    <p>Due: {{ task.deadline }}</p>
+                </div>
+                <span class="task-status task-status--{{ task.status|replace(' ', '-')}}">{{ task.status }}</span>
+            </div>
+            <div class="progress-row progress-row--task">
+                <span class="progress-label">{{ task.progress }}%</span>
+                <div class="progress-bar progress-bar--task"><div class="progress-fill progress-fill--task" style="width: {{ task.progress }}%"></div></div>
+            </div>
+            <div class="task-card-footer">
+                <a class="action-link" href="{{ url_for('employee_task_detail', task_id=task.id) }}">View details</a>
+            </div>
+        </article>
+        {% else %}
+        <article class="task-card">
+            <p>No tasks assigned yet.</p>
+        </article>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

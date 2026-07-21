@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | SWMS{% endblock %}
+
+{% block sidebar %}
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-mark">SW</div>
+        <div>
+            <h2>SWMS</h2>
+            <p>Workforce Hub</p>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="{{ url_for('admin_dashboard', section='overview') }}" class="nav-item {% if section == 'overview' %}active{% endif %}">Overview</a>
+        <a href="{{ url_for('admin_dashboard', section='employees') }}" class="nav-item {% if section == 'employees' %}active{% endif %}">Employee Records</a>
+        <a href="{{ url_for('admin_dashboard', section='departments') }}" class="nav-item {% if section == 'departments' %}active{% endif %}">Departments</a>
+        <a href="{{ url_for('admin_dashboard', section='leave') }}" class="nav-item {% if section == 'leave' %}active{% endif %}">Leave Records</a>
+        <a href="{{ url_for('admin_dashboard', section='tasks') }}" class="nav-item {% if section == 'tasks' %}active{% endif %}">Task Records</a>
+        <a href="{{ url_for('admin_dashboard', section='analytics') }}" class="nav-item {% if section == 'analytics' %}active{% endif %}">Analytics</a>
+        <a href="{{ url_for('admin_dashboard', section='integrations') }}" class="nav-item {% if section == 'integrations' %}active{% endif %}">Integrations</a>
+        <a href="{{ url_for('admin_dashboard', section='settings') }}" class="nav-item {% if section == 'settings' %}active{% endif %}">Settings</a>
+        <a href="{{ url_for('admin_dashboard', section='audit') }}" class="nav-item {% if section == 'audit' %}active{% endif %}">Audit Logs</a>
+        <a href="{{ url_for('logout') }}" class="nav-item">Logout</a>
+    </nav>
+</aside>
+{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left">
+        <div class="search-block">
+            <input type="search" placeholder="Search employees, logs, departments..." aria-label="Search">
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--dashboard">
+        <button class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0:2]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>{{ current_user.role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <section class="page-header">
+        <div>
+            {% if section == 'integrations' %}
+                <p class="eyebrow">Integrations</p>
+                <h2>Connected systems and enabled services</h2>
+            {% elif section == 'settings' %}
+                <p class="eyebrow">System Settings</p>
+                <h2>Configuration and system preferences</h2>
+            {% elif section == 'audit' %}
+                <p class="eyebrow">Audit Logs</p>
+                <h2>Recent system activity</h2>
+            {% else %}
+                <p class="eyebrow">Employee Records</p>
+                <h2>{{ total_employees }} employees across {{ department_count }} departments</h2>
+            {% endif %}
+        </div>
+        {% if section == 'employees' %}
+            <a class="topbar-btn" href="{{ url_for('admin_add_employee') }}">+ Add Employee</a>
+        {% endif %}
+    </section>
+
+    <section class="stats-grid">
+        <article class="stat-card">
+            <p>Total Employees</p>
+            <h3 class="stat-value">{{ total_employees }}</h3>
+        </article>
+        <article class="stat-card">
+            <p>Departments</p>
+            <h3 class="stat-value">{{ department_count }}</h3>
+        </article>
+        <article class="stat-card">
+            <p>Org-wide Task Completion</p>
+            <h3 class="stat-value">{{ task_completion }}%</h3>
+        </article>
+        <article class="stat-card">
+            <p>Active System Alerts</p>
+            <h3 class="stat-value">{{ active_alerts }}</h3>
+        </article>
+    </section>
+
+    {% if section == 'employees' %}
+    <section class="panel-card directory-panel">
+        <div class="directory-header">
+            <div>
+                <p class="eyebrow">Employee Directory</p>
+            </div>
+            <div class="directory-actions">
+                <button class="btn btn-secondary" type="button" id="adminSortButton">Sort A–Z</button>
+                <a class="btn btn-primary" href="{{ url_for('export_employees') }}">Export</a>
+            </div>
+        </div>
+
+        <form id="adminDirectoryFilterForm" class="directory-filters">
+            <input type="hidden" name="section" value="{{ section }}">
+            <input type="search" name="search" value="{{ search }}" placeholder="Search by name or ID..." aria-label="Search employees">
+            <select name="department" aria-label="Department">
+                <option value="All" {% if selected_department == 'All' %}selected{% endif %}>Department: All</option>
+                {% for department in departments %}
+                <option value="{{ department.name }}" {% if selected_department == department.name %}selected{% endif %}>{{ department.name }}</option>
+                {% endfor %}
+            </select>
+            <select name="role" aria-label="Role">
+                <option value="All" {% if selected_role == 'All' %}selected{% endif %}>Role: All</option>
+                <option value="Employee" {% if selected_role == 'Employee' %}selected{% endif %}>Employee</option>
+                <option value="Manager" {% if selected_role == 'Manager' %}selected{% endif %}>Manager</option>
+                <option value="Administrator" {% if selected_role == 'Administrator' %}selected{% endif %}>Administrator</option>
+            </select>
+            <select name="status" aria-label="Status">
+                <option value="All" {% if selected_status == 'All' %}selected{% endif %}>Status: All</option>
+                <option value="Active" {% if selected_status == 'Active' %}selected{% endif %}>Active</option>
+                <option value="On Leave" {% if selected_status == 'On Leave' %}selected{% endif %}>On Leave</option>
+                <option value="Inactive" {% if selected_status == 'Inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+            <button type="button" id="adminFilterApply" class="btn btn-secondary">Apply</button>
+        </form>
+
+        <div class="table-wrap">
+            <table class="directory-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees %}
+                    <tr class="employee-row" data-name="{{ employee.name|lower }}" data-employee-id="{{ employee.employee_id|lower }}" data-department="{{ employee.department|lower }}" data-role="{{ employee.role|lower }}" data-status="{{ employee.status|lower }}">
+                        <td class="employee-cell"><span class="avatar">{{ employee.name[0:2]|upper }}</span><div><strong>{{ employee.name }}</strong><span>{{ employee.employee_id }}</span></div></td>
+                        <td>{{ employee.department }}</td>
+                        <td>{{ employee.role }}</td>
+                        <td><span class="status-pill status-pill--{{ employee.status|lower|replace(' ', '') }}">{{ employee.status }}</span></td>
+                        <td>{{ employee.joined }}</td>
+                        <td>
+                            <a class="action-link" href="{{ url_for('admin_edit_employee', employee_id=employee.id) }}">Edit</a>
+                            <a class="action-link" href="{{ url_for('admin_view_employee', employee_id=employee.id) }}">View</a>
+                            <form method="post" action="{{ url_for('admin_deactivate_employee', employee_id=employee.id) }}" class="inline-form">
+                                <button type="submit" class="action-link">Deactivate</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6">No employees found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="table-footer" id="adminEmployeeCount">Showing {{ employees|length }} of {{ total_employees }}</div>
+    </section>
+    {% elif section == 'departments' %}
+    <section class="panel-card directory-panel">
+        <div class="directory-header"><div><p class="eyebrow">Department Management</p><h3>Create, edit and safely remove departments</h3></div></div>
+        <form method="post" action="{{ url_for('admin_add_department') }}" class="department-create-form">
+            <input name="name" placeholder="Department name" required>
+            <input name="head" placeholder="Department head">
+            <button class="btn btn-primary" type="submit">Add Department</button>
+        </form>
+        <div class="table-wrap"><table class="directory-table"><thead><tr><th>Department</th><th>Head</th><th>Employees</th><th>Actions</th></tr></thead><tbody>
+        {% for metric in department_metrics %}
+        <tr><td><strong>{{ metric.name }}</strong></td><td>{{ metric.head }}</td><td>{{ metric.employees }}</td><td>
+            <details class="inline-editor"><summary>Edit</summary><form method="post" action="{{ url_for('admin_edit_department', department_id=metric.id) }}"><input name="name" value="{{ metric.name }}" required><input name="head" value="{{ metric.head }}"><button class="btn btn-secondary" type="submit">Save</button></form></details>
+            <form class="inline-form" data-confirm="Delete this department?" method="post" action="{{ url_for('admin_delete_department', department_id=metric.id) }}"><button class="action-link action-link--danger" type="submit">Delete</button></form>
+        </td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    {% elif section == 'leave' %}
+    <section class="panel-card directory-panel">
+        <div class="directory-header"><div><p class="eyebrow">Leave Records</p></div><a class="btn btn-primary" href="{{ url_for('export_leave_records') }}">Export CSV</a></div>
+        <div class="table-wrap"><table class="directory-table"><thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th>Status</th></tr></thead><tbody>
+        {% for leave in leave_requests %}<tr><td>{{ leave.employee_name }}</td><td>{{ leave.leave_type }}</td><td>{{ leave.start_date }} → {{ leave.end_date }}</td><td>{{ leave.duration }}</td><td><span class="status-pill status-pill--{{ leave.status|lower }}">{{ leave.status }}</span></td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    {% elif section == 'tasks' %}
+    <section class="panel-card directory-panel">
+        <div class="directory-header"><div><p class="eyebrow">Task Records</p></div></div>
+        <div class="table-wrap"><table class="directory-table"><thead><tr><th>Task</th><th>Assignee</th><th>Priority</th><th>Deadline</th><th>Progress</th><th>Status</th></tr></thead><tbody>
+        {% for task in tasks %}<tr><td>{{ task.title }}</td><td>{{ task.assigned_to }}</td><td>{{ task.priority }}</td><td>{{ task.deadline }}</td><td>{{ task.progress }}%</td><td>{{ task.status }}</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    {% elif section == 'analytics' %}
+    <section class="panel-card directory-panel">
+        <div class="directory-header"><div><p class="eyebrow">Department Performance Analytics</p><h3>Productivity and workforce indicators by department</h3></div></div>
+        <div class="chart-wrapper"><canvas id="adminDepartmentPerformanceChart"></canvas></div>
+        <div class="table-wrap"><table class="directory-table"><thead><tr><th>Department</th><th>Employees</th><th>Tasks</th><th>Completed</th><th>Overdue</th><th>Completion</th><th>Approved Leave</th></tr></thead><tbody>
+        {% for metric in department_metrics %}<tr><td><strong>{{ metric.name }}</strong></td><td>{{ metric.employees }}</td><td>{{ metric.tasks }}</td><td>{{ metric.completed }}</td><td>{{ metric.overdue }}</td><td>{{ metric.completion_rate }}%</td><td>{{ metric.approved_leave }}</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+    {% elif section == 'overview' %}
+    <section class="panel-card directory-panel"><div class="directory-header"><div><p class="eyebrow">System Overview</p></div></div><p>Use the summary cards above for a real-time snapshot of employees, departments, task completion and alerts.</p></section>
+    {% elif section == 'integrations' %}
+    <section class="panel-card directory-panel">
+        <div class="directory-header">
+            <div>
+                <p class="eyebrow">Integrations</p>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table class="directory-table">
+                <thead>
+                    <tr>
+                        <th>Platform</th>
+                        <th>Status</th>
+                        <th>Detail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for integration in integrations %}
+                    <tr>
+                        <td>{{ integration.name }}</td>
+                        <td>{{ 'Enabled' if integration.enabled else 'Disabled' }}</td>
+                        <td>{{ integration.name }} integration status</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3">No integrations configured.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% elif section == 'settings' %}
+    <div class="settings-page settings-page--admin">
+        <section class="settings-hero">
+            <div>
+                <span class="settings-badge">System configuration</span>
+                <h2>Organisation-wide settings</h2>
+                <p>Manage system time, working days and notification channels for SWMS.</p>
+            </div>
+            <div class="settings-hero-icon" aria-hidden="true">⚙</div>
+        </section>
+
+        <form method="post" action="{{ url_for('admin_update_settings') }}" class="settings-form">
+            <div class="settings-grid">
+                <section class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-icon settings-icon--purple">◷</div>
+                        <div>
+                            <h3>System preferences</h3>
+                            <p>Configure the organisation's default time and work schedule.</p>
+                        </div>
+                    </div>
+                    <div class="settings-fields">
+                        <label class="settings-field">
+                            <span>Time zone</span>
+                            <select name="timezone">
+                                {% for timezone in ['UTC', 'Asia/Kuala_Lumpur', 'Asia/Singapore', 'Asia/Jakarta'] %}
+                                <option value="{{ timezone }}" {% if settings.system.timezone == timezone %}selected{% endif %}>{{ timezone }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label class="settings-field">
+                            <span>Work week</span>
+                            <select name="workweek">
+                                {% for workweek in ['Mon-Fri', 'Sun-Thu', 'Mon-Sat'] %}
+                                <option value="{{ workweek }}" {% if settings.system.workweek == workweek %}selected{% endif %}>{{ workweek }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                    </div>
+                </section>
+
+                <section class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-icon settings-icon--blue">🔔</div>
+                        <div>
+                            <h3>Notification services</h3>
+                            <p>Enable or disable organisation-wide communication channels.</p>
+                        </div>
+                    </div>
+                    <div class="settings-list">
+                        <label class="setting-item">
+                            <div class="setting-copy"><strong>Email notifications</strong><span>System emails and workforce alerts.</span></div>
+                            <span class="switch-control"><input type="checkbox" name="email_notifications" {% if settings.notifications.email %}checked{% endif %}><span class="switch-slider"></span></span>
+                        </label>
+                        <label class="setting-item">
+                            <div class="setting-copy"><strong>WhatsApp notifications</strong><span>WhatsApp alerts for connected users.</span></div>
+                            <span class="switch-control"><input type="checkbox" name="whatsapp_notifications" {% if settings.notifications.whatsapp %}checked{% endif %}><span class="switch-slider"></span></span>
+                        </label>
+                        <label class="setting-item">
+                            <div class="setting-copy"><strong>Task reminders</strong><span>Automated task and deadline reminders.</span></div>
+                            <span class="switch-control"><input type="checkbox" name="reminders" {% if settings.notifications.reminders %}checked{% endif %}><span class="switch-slider"></span></span>
+                        </label>
+                    </div>
+                </section>
+            </div>
+            <div class="settings-actions">
+                <a class="btn btn-secondary" href="{{ url_for('admin_dashboard', section='employees') }}">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save system settings</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if section == 'audit' %}
+    <section class="panel-card audit-panel">
+        <div class="audit-header">
+            <div>
+                <p class="eyebrow">System Audit Log</p>
+            </div>
+            <a class="btn btn-primary" href="{{ url_for('export_audit_logs') }}">Export CSV</a>
+        </div>
+
+        <div class="audit-filter-row">
+            <input type="search" placeholder="Search action or user..." aria-label="Search audit log">
+            <select aria-label="Action Type">
+                <option>Action Type: All</option>
+                <option>CREATE</option>
+                <option>UPDATE</option>
+                <option>DELETE</option>
+            </select>
+            <select aria-label="Module">
+                <option>Module: All</option>
+                <option>Employee Records</option>
+                <option>Leave Management</option>
+                <option>Integrations</option>
+            </select>
+            <input type="text" placeholder="Date range: Last 7 days" aria-label="Date range">
+        </div>
+
+        <div class="audit-log">
+            {% for log in audit_logs %}
+            <article class="audit-entry audit-entry--{{ 'success' if log.status == 'Success' else 'failed' if log.status == 'Failed' else 'pending' }}" data-action="{{ log.action|lower }}" data-module="{{ log.module|lower }}">
+                <div class="audit-entry-top">
+                    <h5>{{ log.message }}</h5>
+                    <span class="status-pill status-pill--{{ log.status|lower }}">{{ log.status }}</span>
+                </div>
+                <p class="audit-entry-meta">{{ log.actor|default("System") }} · {{ log.role|default("system")|capitalize }} · Module: {{ log.module }} · Action: {{ log.action }} · {{ log.timestamp }} · IP: {{ log.ip_address|default("Local") }}</p>
+            </article>
+            {% endfor %}
+        </div>
+
+        <div class="audit-note">
+            DATA SOURCE: Audit Logs table (user_id, module, action_type, timestamp, ip_address, status) Every CRUD action, login event, and approval decision across all 3 roles is appended here immutably.
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if section == 'analytics' %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const canvas = document.getElementById('adminDepartmentPerformanceChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+  new Chart(canvas, {
+    type: 'bar',
+    data: {labels: {{ performance_labels|tojson }}, datasets: [{label: 'Task completion rate (%)', data: {{ performance_values|tojson }}, borderRadius: 6}]},
+    options: {responsive: true, maintainAspectRatio: false, resizeDelay: 150, scales: {y: {beginAtZero: true, max: 100}}}
+  });
+});
+</script>
+{% endif %}
+{% endblock %}

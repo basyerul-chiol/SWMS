@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Performance Analysis | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left">
+        <div>
+            <p class="eyebrow">Workforce Analytics</p>
+            <h3>Employee Performance Analysis</h3>
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--dashboard">
+        <a class="topbar-btn" href="{{ url_for('manager_dashboard') }}">Back to Dashboard</a>
+        <div class="user-pill">
+            <span>{{ current_user.name[0]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>{{ current_role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<style>
+    .performance-page {
+        display: grid;
+        gap: 24px;
+    }
+
+    .performance-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .performance-card,
+    .performance-panel {
+        background: #fff;
+        border: 1px solid #e3e8f2;
+        border-radius: 18px;
+        padding: 22px;
+    }
+
+    .performance-card span {
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .performance-card strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 30px;
+        color: #0f172a;
+    }
+
+    .performance-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.6fr);
+        gap: 20px;
+    }
+
+    .performance-table-wrap {
+        overflow-x: auto;
+    }
+
+    .performance-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .performance-table th,
+    .performance-table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #edf0f5;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .performance-table th {
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .rating-badge {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #eef4ff;
+        color: #2563eb;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .score-bar {
+        width: 120px;
+        height: 8px;
+        border-radius: 999px;
+        background: #e7ecf4;
+        overflow: hidden;
+    }
+
+    .score-bar span {
+        display: block;
+        height: 100%;
+        background: #2563eb;
+        border-radius: inherit;
+    }
+
+    .formula-box {
+        margin-top: 18px;
+        padding: 16px;
+        border-radius: 14px;
+        background: #f8fafc;
+        color: #475569;
+        line-height: 1.7;
+    }
+
+    .chart-box {
+        position: relative;
+        min-height: 340px;
+    }
+
+    @media (max-width: 1000px) {
+        .performance-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .performance-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .performance-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="performance-page">
+    <div>
+        <p class="eyebrow">Performance Overview</p>
+        <h2>Employee performance analysis</h2>
+        <p class="text-muted">
+            Performance is calculated using task completion, average progress and deadline performance.
+        </p>
+    </div>
+
+    <section class="performance-summary">
+        <article class="performance-card">
+            <span>Total employees</span>
+            <strong>{{ total_employees }}</strong>
+        </article>
+
+        <article class="performance-card">
+            <span>Employees analysed</span>
+            <strong>{{ employees_analysed }}</strong>
+        </article>
+
+        <article class="performance-card">
+            <span>Average team score</span>
+            <strong>{{ average_score }}%</strong>
+        </article>
+
+        <article class="performance-card">
+            <span>Needs improvement</span>
+            <strong>{{ needs_improvement }}</strong>
+        </article>
+    </section>
+
+    <section class="performance-grid">
+        <div class="performance-panel">
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">Ranking</p>
+                    <h3>Employee performance table</h3>
+                </div>
+            </div>
+
+            <div class="performance-table-wrap">
+                <table class="performance-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Employee</th>
+                            <th>Total Tasks</th>
+                            <th>Completed</th>
+                            <th>Overdue</th>
+                            <th>Avg. Progress</th>
+                            <th>Score</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in performance_data %}
+                        <tr>
+                            <td>{{ result.rank }}</td>
+                            <td><strong>{{ result.employee_name }}</strong></td>
+                            <td>{{ result.total_tasks }}</td>
+                            <td>{{ result.completed_tasks }}</td>
+                            <td>{{ result.overdue_tasks }}</td>
+                            <td>{{ result.average_progress }}%</td>
+                            <td>
+                                <strong>{{ result.performance_score }}%</strong>
+                                <div class="score-bar">
+                                    <span style="width: {{ result.performance_score }}%"></span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="rating-badge">{{ result.rating }}</span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8">No employee performance data is available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <aside class="performance-panel">
+            <p class="eyebrow">Top Performer</p>
+
+            {% if top_performer %}
+                <h3>{{ top_performer.employee_name }}</h3>
+                <strong style="font-size: 42px;">{{ top_performer.performance_score }}%</strong>
+                <p class="text-muted">{{ top_performer.rating }}</p>
+            {% else %}
+                <h3>No performance data yet</h3>
+                <p class="text-muted">Assign tasks to employees to begin the analysis.</p>
+            {% endif %}
+
+            <div class="formula-box">
+                <strong>Performance formula</strong><br>
+                Completion Rate × 50%<br>
+                Average Progress × 30%<br>
+                Deadline Score × 20%
+            </div>
+        </aside>
+    </section>
+
+    <section class="performance-panel">
+        <div class="page-header">
+            <div>
+                <p class="eyebrow">Comparison Chart</p>
+                <h3>Performance score by employee</h3>
+            </div>
+        </div>
+
+        <div class="chart-box">
+            <canvas id="performanceChart"></canvas>
+        </div>
+    </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const performanceCanvas = document.getElementById("performanceChart");
+
+    if (performanceCanvas) {
+        new Chart(performanceCanvas, {
+            type: "bar",
+            data: {
+                labels: {{ chart_labels | tojson }},
+                datasets: [{
+                    label: "Performance Score (%)",
+                    data: {{ chart_values | tojson }},
+                    borderWidth: 1,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + "%";
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

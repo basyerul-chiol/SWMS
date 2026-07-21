@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Dashboard | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--manager">
+    <div class="topbar-left">
+        <div class="search-block">
+            <input type="search" placeholder="Search team, tasks, requests..." aria-label="Search">
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--manager">
+        <button type="button" class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0:2]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>Manager · {{ current_user.role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="manager-dashboard">
+    <section class="manager-header">
+        <div>
+            <p class="eyebrow">Manager Overview</p>
+            <h2>{{ current_user.name }} · {{ pending_approvals }} pending approvals</h2>
+        </div>
+    </section>
+
+    <section class="manager-kpis">
+        <article class="kpi-card">
+            <span class="kpi-label">Task Completion Rate</span>
+            <div class="kpi-value">{{ completion_rate }}%</div>
+            <span class="kpi-meta kpi-meta--positive">Trend positive</span>
+        </article>
+        <article class="kpi-card">
+            <span class="kpi-label">Pending Approvals</span>
+            <div class="kpi-value">{{ pending_approvals }}</div>
+            <span class="kpi-meta kpi-meta--warning">Needs action</span>
+        </article>
+        <article class="kpi-card">
+            <span class="kpi-label">Team on Leave Today</span>
+            <div class="kpi-value">{{ leave_requests|selectattr('status','equalto','Approved')|list|length }} / {{ tasks|length }}</div>
+            <span class="kpi-meta">Present</span>
+        </article>
+        <article class="kpi-card">
+            <span class="kpi-label">Overdue Tasks</span>
+            <div class="kpi-value kpi-value--alert">{{ overdue_tasks }}</div>
+            <span class="kpi-meta">Action required</span>
+        </article>
+    </section>
+
+    <section class="manager-charts">
+        <div class="panel-card panel-card--chart">
+            <div class="panel-title">Task Completion Trend (30 days)</div>
+            <div class="chart-wrapper">
+                <canvas id="taskCompletionChart" class="dashboard-chart"></canvas>
+            </div>
+        </div>
+        <div class="panel-card panel-card--chart">
+            <div class="panel-title">Leave Trend Analysis by Month</div>
+            <div class="chart-wrapper">
+                <canvas id="leaveTrendChart" class="dashboard-chart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <section class="approval-section">
+        <div class="approval-header">
+            <div>
+                <p class="eyebrow">Leave Approval Queue</p>
+            </div>
+            <form id="managerFilterForm" class="approval-filters approval-filters-form">
+                <input type="search" name="search" value="{{ search }}" placeholder="Search employee..." aria-label="Search employee">
+                <select name="leave_type" aria-label="Type">
+                    <option value="All" {% if selected_leave_type == 'All' %}selected{% endif %}>Type: All</option>
+                    <option value="Annual Leave" {% if selected_leave_type == 'Annual Leave' %}selected{% endif %}>Annual Leave</option>
+                    <option value="Sick Leave" {% if selected_leave_type == 'Sick Leave' %}selected{% endif %}>Sick Leave</option>
+                    <option value="Emergency Leave" {% if selected_leave_type == 'Emergency Leave' %}selected{% endif %}>Emergency Leave</option>
+                </select>
+                <select name="status" aria-label="Status">
+                    <option value="All" {% if selected_status == 'All' %}selected{% endif %}>Status: All</option>
+                    <option value="Pending" {% if selected_status == 'Pending' %}selected{% endif %}>Pending</option>
+                    <option value="Approved" {% if selected_status == 'Approved' %}selected{% endif %}>Approved</option>
+                    <option value="Rejected" {% if selected_status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+                <input type="text" name="date_range" value="{{ selected_date_range }}" placeholder="Date range" aria-label="Date range">
+                <button type="button" id="managerFilterApply" class="btn btn-secondary">Filter</button>
+            </form>
+        </div>
+        <div class="approval-table-wrap">
+            <table class="approval-table">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Leave type</th>
+                        <th>Dates</th>
+                        <th>Days</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leave in leave_requests %}
+                    <tr class="leave-row" data-employee="{{ leave.employee_name|lower }}" data-leave-type="{{ leave.leave_type|lower }}" data-status="{{ leave.status|lower }}" data-start-date="{{ leave.start_date }}" data-end-date="{{ leave.end_date }}">
+                        <td class="employee-cell"><span class="avatar">{{ leave.employee_name[0:2]|upper }}</span><div><strong>{{ leave.employee_name }}</strong><span>{{ leave.leave_type }}</span></div></td>
+                        <td>{{ leave.leave_type }}</td>
+                        <td>{{ leave.start_date }} → {{ leave.end_date }}</td>
+                        <td>{{ leave.duration }} day{{ 's' if leave.duration != 1 }}</td>
+                        <td><span class="status-pill status-pill--{{ leave.status|lower }}">{{ leave.status }}</span></td>
+                        <td>
+                            {% if leave.status == 'Pending' %}
+                                <div class="action-group">
+                                    <form method="post" action="{{ url_for('manage_leave', leave_id=leave.id, action='approve') }}">
+                                        <button type="submit" class="btn btn-approve">Approve</button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('manage_leave', leave_id=leave.id, action='reject') }}">
+                                        <button type="submit" class="btn btn-reject">Reject</button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <a class="action-link" href="{{ url_for('manager_dashboard') }}">View details</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6">No leave requests available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="approval-footer"><span id="managerLeaveCount">{{ leave_requests|length }} requests</span><a class="link-secondary" href="{{ url_for('manager_leave') }}">View all requests →</a></div>
+    </section>
+
+    <section class="modal-wizard">
+        <div class="wizard-card">
+            <div class="wizard-header">
+                <span class="eyebrow">MODAL / WIZARD:</span>
+                <p>Task Creation (from Task Management)</p>
+            </div>
+            <div class="wizard-steps">
+                <div class="wizard-step wizard-step--active"><span>1</span><p>Task Details</p></div>
+                <div class="wizard-step"><span>2</span><p>Assign & Schedule</p></div>
+                <div class="wizard-step"><span>3</span><p>Review</p></div>
+            </div>
+            <form method="post" action="{{ url_for('create_task') }}" class="wizard-form">
+                <div class="field-full">
+                    <label>Task Title</label>
+                    <input type="text" name="title" placeholder="Enter task title" required>
+                </div>
+                <div class="field-row">
+                    <label>
+                        Assign To
+                        <select name="assigned_to" required>
+                            <option value="">Select team member</option>
+                            {% for employee in employees %}
+                            <option value="{{ employee.name }}">{{ employee.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        Priority
+                        <select name="priority" required>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </label>
+                    <label>
+                        Due Date
+                        <input type="date" name="deadline" required>
+                    </label>
+                </div>
+                <div class="wizard-actions">
+                    <button type="reset" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Task</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const taskCtx = document.getElementById('taskCompletionChart');
+            if (taskCtx) {
+                const existingTaskChart = Chart.getChart(taskCtx);
+                if (existingTaskChart) existingTaskChart.destroy();
+                new Chart(taskCtx, {
+                    type: 'line',
+                    data: {
+                        labels: {{ task_chart_labels|tojson }},
+                        datasets: [{
+                            label: 'Progress %',
+                            data: {{ task_chart_values|tojson }},
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.12)',
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        resizeDelay: 150,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: { stepSize: 20 },
+                            },
+                        },
+                        plugins: {
+                            legend: { display: false },
+                        },
+                    },
+                });
+            }
+
+            const leaveCtx = document.getElementById('leaveTrendChart');
+            if (leaveCtx) {
+                const existingLeaveChart = Chart.getChart(leaveCtx);
+                if (existingLeaveChart) existingLeaveChart.destroy();
+                new Chart(leaveCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: {{ leave_trend_labels|tojson }},
+                        datasets: [{
+                            label: 'Leave Requests',
+                            data: {{ leave_trend_values|tojson }},
+                            backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                            borderRadius: 6,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        resizeDelay: 150,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 },
+                            },
+                        },
+                        plugins: {
+                            legend: { display: false },
+                        },
+                    },
+                });
+            }
+        });
+    </script>
+{% endblock %}

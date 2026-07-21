@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}My Profile | SWMS{% endblock %}
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left"><div class="search-block"><input type="search" placeholder="Search profile settings..." aria-label="Search"></div></div>
+    <div class="topbar-right topbar-right--dashboard">
+        <a class="topbar-btn" href="{{ url_for('employee_dashboard') }}">Back to Dashboard</a>
+        {% include "notification_widget.html" %}
+        <div class="user-pill">
+            {% if employee.profile_picture %}<img class="user-avatar" src="{{ url_for('static', filename=employee.profile_picture) }}" alt="{{ employee.name }}">
+            {% else %}<span>{{ current_user.name[0]|upper }}</span>{% endif %}
+            <div><strong>{{ current_user.name }}</strong><span>{{ current_role|capitalize }}</span></div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+{% block content %}
+<div class="page-card profile-page-card">
+    <div class="page-header"><div><p class="eyebrow">Profile</p><h2>Update your information</h2><p class="muted-text">You can update your contact details and profile picture. Employment details remain controlled by Admin.</p></div></div>
+    <form method="post" enctype="multipart/form-data" class="form-grid">
+        <div class="profile-photo-section full-width">
+            <div class="profile-photo-preview">
+                {% if employee.profile_picture %}<img src="{{ url_for('static', filename=employee.profile_picture) }}" alt="Profile picture">
+                {% else %}<span>{{ employee.name[0:2]|upper }}</span>{% endif %}
+            </div>
+            <label class="profile-upload-label">Profile Picture
+                <input type="file" name="profile_picture" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
+                <small>PNG, JPG, JPEG or WEBP. Maximum 5 MB.</small>
+            </label>
+        </div>
+        <label>Full Name<input type="text" name="name" value="{{ employee.name }}" required></label>
+        <label>Email Address<input type="email" name="email" value="{{ employee.email }}" required></label>
+        <label>Phone Number<input type="tel" name="phone" value="{{ employee.get('phone', '') }}" placeholder="e.g. +60123456789"></label>
+        <label>Emergency Contact Name<input type="text" name="emergency_contact" value="{{ employee.get('emergency_contact', '') }}"></label>
+        <label>Emergency Contact Phone<input type="tel" name="emergency_phone" value="{{ employee.get('emergency_phone', '') }}"></label>
+        <label class="full-width">Address<textarea name="address" rows="3" placeholder="Your current address">{{ employee.get('address', '') }}</textarea></label>
+        <label>Employee ID<input type="text" value="{{ employee.employee_id }}" disabled></label>
+        <label>Department<input type="text" value="{{ employee.department }}" disabled></label>
+        <label>Position<input type="text" value="{{ employee.position }}" disabled></label>
+        <label>Joined Date<input type="text" value="{{ employee.joined }}" disabled></label>
+        <div class="form-actions full-width"><button type="submit" class="btn btn-primary">Save changes</button></div>
+    </form>
+</div>
+{% endblock %}

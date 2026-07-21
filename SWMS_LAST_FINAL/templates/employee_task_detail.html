@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Task Details | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left">
+        <div class="search-block">
+            <input type="search" placeholder="Search tasks..." aria-label="Search">
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--dashboard">
+        <button class="topbar-btn"><a href="{{ url_for('employee_tasks') }}">Back to Tasks</a></button>
+        <button class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>{{ current_role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Task Details</p>
+            <h2>{{ task.title }}</h2>
+        </div>
+    </div>
+
+    <div class="task-detail-grid">
+        <div class="info-panel">
+            <div class="info-row"><strong>Assigned to</strong><span>{{ task.assigned_to }}</span></div>
+            <div class="info-row"><strong>Priority</strong><span>{{ task.priority }}</span></div>
+            <div class="info-row"><strong>Due date</strong><span>{{ task.deadline }}</span></div>
+            <div class="info-row"><strong>Status</strong><span>{{ task.status }}</span></div>
+            <div class="info-row"><strong>Progress</strong><span>{{ task.progress }}%</span></div>
+        </div>
+        <div class="task-detail-body">
+            <section class="panel-card">
+                <div class="panel-header"><h4>Description</h4></div>
+                <p>{{ task.description or 'No description available for this task.' }}</p>
+            </section>
+            <section class="panel-card">
+                <div class="panel-header"><h4>Update Progress</h4></div>
+                <form method="post" action="{{ url_for('update_task_progress', task_id=task.id) }}" class="progress-form">
+                    <label>
+                        Progress
+                        <input type="number" name="progress" min="0" max="100" value="{{ task.progress }}">
+                    </label>
+                    <button type="submit" class="btn btn-primary">Save progress</button>
+                </form>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

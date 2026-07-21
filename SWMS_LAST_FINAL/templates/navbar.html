@@ -1,0 +1,25 @@
+<header class="topbar">
+    <div class="topbar-left">
+        <h1>Smart Workforce Management System</h1>
+    </div>
+
+    <div class="topbar-right">
+        {% if current_role == 'manager' %}
+            <a class="topbar-btn" href="{{ url_for('manager_dashboard') }}">+ New Task</a>
+        {% elif current_role == 'admin' %}
+            <a class="topbar-btn" href="{{ url_for('admin_add_employee') }}">+ Add Employee</a>
+        {% elif current_role == 'employee' %}
+            <a class="topbar-btn" href="{{ url_for('employee_leave') }}">+ Apply for Leave</a>
+        {% endif %}
+
+        {% include "notification_widget.html" %}
+
+        <div class="user-pill">
+            <span>{{ current_user.name[0]|upper if current_user else 'U' }}</span>
+            <div>
+                <strong>{{ current_user.name if current_user else 'Guest' }}</strong>
+                <span>{{ current_role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>

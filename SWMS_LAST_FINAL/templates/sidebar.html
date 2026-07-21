@@ -1,0 +1,162 @@
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-mark">SW</div>
+
+        <div>
+            <h2>SWMS</h2>
+            <p>Workforce Hub</p>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+
+        {% if current_role == 'employee' %}
+
+            <a href="{{ url_for('employee_dashboard') }}"
+               class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                Dashboard
+            </a>
+
+            <a href="{{ url_for('employee_leave') }}"
+               class="nav-item {% if active_page == 'leave' %}active{% endif %}">
+                My Leave
+            </a>
+
+            <a href="{{ url_for('employee_tasks') }}"
+               class="nav-item {% if active_page == 'tasks' %}active{% endif %}">
+                My Tasks
+            </a>
+
+            <a href="{{ url_for('employee_profile') }}"
+               class="nav-item {% if active_page == 'profile' %}active{% endif %}">
+                My Profile
+            </a>
+
+            <a href="{{ url_for('employee_settings') }}"
+               class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+                Settings
+            </a>
+
+            <a href="{{ url_for('change_password') }}"
+               class="nav-item {% if active_page == 'change_password' %}active{% endif %}">
+                Change Password
+            </a>
+
+            <a href="{{ url_for('google_calendar_settings') }}"
+               class="nav-item {% if active_page == 'google_calendar' %}active{% endif %}">
+                Google Calendar
+            </a>
+
+        {% elif current_role == 'manager' %}
+
+            <a href="{{ url_for('manager_dashboard') }}"
+               class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                Dashboard
+            </a>
+
+            <a href="{{ url_for('manager_leave') }}"
+               class="nav-item {% if active_page == 'leave' %}active{% endif %}">
+                Approvals
+            </a>
+
+            <a href="{{ url_for('manager_tasks') }}"
+               class="nav-item {% if active_page == 'tasks' %}active{% endif %}">
+                Tasks
+            </a>
+
+            <a href="{{ url_for('manager_performance') }}"
+               class="nav-item {% if active_page == 'performance' %}active{% endif %}">
+                Performance Analysis
+            </a>
+
+            <a href="{{ url_for('manager_calendar') }}"
+               class="nav-item {% if active_page == 'calendar' %}active{% endif %}">
+                Calendar
+            </a>
+
+            <a href="{{ url_for('manager_profile') }}"
+               class="nav-item {% if active_page == 'profile' %}active{% endif %}">
+                Profile
+            </a>
+
+            <a href="{{ url_for('manager_settings') }}"
+               class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+                Settings
+            </a>
+
+            <a href="{{ url_for('change_password') }}"
+               class="nav-item {% if active_page == 'change_password' %}active{% endif %}">
+                Change Password
+            </a>
+
+            <a href="{{ url_for('google_calendar_settings') }}"
+               class="nav-item {% if active_page == 'google_calendar' %}active{% endif %}">
+                Google Calendar
+            </a>
+
+        {% elif current_role == 'admin' %}
+
+            <a href="{{ url_for('admin_dashboard', section='overview') }}"
+               class="nav-item {% if section == 'overview' %}active{% endif %}">
+                Overview
+            </a>
+
+            <a href="{{ url_for('admin_dashboard', section='employees') }}"
+               class="nav-item {% if section == 'employees' %}active{% endif %}">
+                Employee Records
+            </a>
+
+            <a href="{{ url_for('admin_dashboard', section='departments') }}"
+               class="nav-item {% if section == 'departments' %}active{% endif %}">
+                Departments
+            </a>
+
+            <a href="{{ url_for('admin_dashboard', section='leave') }}"
+               class="nav-item {% if section == 'leave' %}active{% endif %}">
+                Leave Records
+            </a>
+
+            <a href="{{ url_for('admin_dashboard', section='tasks') }}"
+               class="nav-item {% if section == 'tasks' %}active{% endif %}">
+                Task Records
+            </a>
+
+            <a href="{{ url_for('admin_dashboard', section='audit') }}"
+               class="nav-item {% if section == 'audit' %}active{% endif %}">
+                Audit Logs
+            </a>
+
+            <a href="{{ url_for('admin_dashboard', section='analytics') }}"
+               class="nav-item {% if section == 'analytics' %}active{% endif %}">
+                Global Analytics
+            </a>
+
+            <a href="{{ url_for('admin_dashboard', section='integrations') }}"
+               class="nav-item {% if section == 'integrations' %}active{% endif %}">
+                Integrations
+            </a>
+
+            <a href="{{ url_for('admin_dashboard', section='settings') }}"
+               class="nav-item {% if section == 'settings' %}active{% endif %}">
+                Settings
+            </a>
+
+            <a href="{{ url_for('change_password') }}"
+               class="nav-item {% if active_page == 'change_password' %}active{% endif %}">
+                Change Password
+            </a>
+
+            <a href="{{ url_for('google_calendar_settings') }}"
+               class="nav-item {% if active_page == 'google_calendar' %}active{% endif %}">
+                Google Calendar
+            </a>
+
+        {% endif %}
+
+        <a href="{{ url_for('logout') }}"
+           class="nav-item">
+            Logout
+        </a>
+
+    </nav>
+</aside>

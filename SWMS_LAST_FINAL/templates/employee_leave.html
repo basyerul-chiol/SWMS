@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}My Leave | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left">
+        <div class="search-block">
+            <form method="get" action="{{ url_for('employee_leave') }}">
+                <input type="search" name="search" value="{{ search }}" placeholder="Search leave requests..." aria-label="Search">
+            </form>
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--dashboard">
+        <button class="topbar-btn"><a href="{{ url_for('employee_dashboard') }}">Back to Dashboard</a></button>
+        <button class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>{{ current_role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="leave-balance-banner">
+    <div>
+        <span>Available balances</span>
+        <strong>
+            Annual {{ leave_balances['Annual Leave']['remaining'] }} ·
+            Sick {{ leave_balances['Sick Leave']['remaining'] }} ·
+            Emergency {{ leave_balances['Emergency Leave']['remaining'] }} days
+        </strong>
+    </div>
+    <small>Only the selected leave type is deducted after manager approval. Unpaid leave is recorded separately.</small>
+</div>
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Leave Management</p>
+            <h2>My leave requests</h2>
+        </div>
+        <a href="#apply-leave" class="primary-btn">Apply for Leave</a>
+    </div>
+
+    <div class="filter-row">
+        <form method="get" class="filter-form" action="{{ url_for('employee_leave') }}">
+            <input type="search" name="search" value="{{ search }}" placeholder="Filter by type, status or date">
+            <select name="status">
+                <option value="All" {% if status_filter == 'All' %}selected{% endif %}>Status: All</option>
+                <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                <option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved</option>
+                <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
+                <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+            <button type="submit" class="btn btn-secondary">Filter</button>
+        </form>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Dates</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for leave in leaves %}
+                <tr>
+                    <td>{{ leave.leave_type }}</td>
+                    <td>{{ leave.start_date }} → {{ leave.end_date }}</td>
+                    <td>{{ leave.duration }} day{{ "s" if leave.duration != 1 }}</td>
+                    <td><span class="status-pill status-pill--{{ leave.status|lower }}">{{ leave.status }}</span></td>
+                    <td>
+                        {% if leave.status == 'Pending' %}
+                        <form method="post" action="{{ url_for('cancel_leave', leave_id=leave.id) }}">
+                            <button type="submit" class="action-link">Cancel</button>
+                        </form>
+                        {% else %}
+                        <span class="text-muted">No actions</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5">No leave requests found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-card" id="apply-leave">
+    <div class="modal-header">
+        <p class="eyebrow">Request new leave</p>
+        <h4>Submit leave details</h4>
+    </div>
+    <form method="post" action="{{ url_for('submit_leave') }}" class="modal-grid">
+        <label>
+            Leave Type
+            <select name="leave_type" required>
+                <option value="Annual Leave">Annual Leave</option>
+                <option value="Sick Leave">Sick Leave</option>
+                <option value="Emergency Leave">Emergency Leave</option>
+                <option value="Unpaid Leave">Unpaid Leave</option>
+            </select>
+        </label>
+        <label>
+            Start Date
+            <input type="date" name="start_date" required>
+        </label>
+        <label>
+            End Date
+            <input type="date" name="end_date" required>
+        </label>
+        <label class="full-width">
+            Attach supporting document
+            <input type="text" name="support_document" placeholder="File name or note">
+        </label>
+        <div class="modal-actions full-width">
+            <a href="#" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

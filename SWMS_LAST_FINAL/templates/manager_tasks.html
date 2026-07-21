@@ -1,0 +1,67 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Team Tasks | SWMS{% endblock %}
+
+{% block navbar %}
+<header class="topbar topbar--manager">
+    <div class="topbar-left">
+        <div class="search-block">
+            <input type="search" placeholder="Search tasks..." aria-label="Search tasks">
+        </div>
+    </div>
+
+    <div class="topbar-right topbar-right--manager">
+        <button type="button" class="icon-btn" aria-label="Notifications">🔔</button>
+        <div class="user-pill">
+            <span>{{ current_user.name[0:2]|upper }}</span>
+            <div>
+                <strong>{{ current_user.name }}</strong>
+                <span>Manager · {{ current_user.role|capitalize }}</span>
+            </div>
+        </div>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="page-card">
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Task Management</p>
+            <h2>Team tasks and deadlines</h2>
+        </div>
+        <a class="topbar-btn" href="{{ url_for('manager_dashboard') }}">+ Create Task</a>
+    </div>
+
+    <div class="approval-table-wrap">
+        <table class="approval-table">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Assigned To</th>
+                    <th>Priority</th>
+                    <th>Deadline</th>
+                    <th>Progress</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.title }}</td>
+                    <td>{{ task.assigned_to }}</td>
+                    <td>{{ task.priority }}</td>
+                    <td>{{ task.deadline }}</td>
+                    <td>{{ task.progress }}%</td>
+                    <td><span class="status-pill status-pill--{{ task.status|lower|replace(' ', '-') }}">{{ task.status }}</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6">No tasks assigned yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

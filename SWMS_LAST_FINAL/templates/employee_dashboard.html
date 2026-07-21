@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Employee Dashboard | SWMS{% endblock %}
+{% block navbar %}
+<header class="topbar topbar--dashboard">
+    <div class="topbar-left"><div class="search-block"><input type="search" placeholder="Search tasks, leave, calendar..." aria-label="Search"></div></div>
+    <div class="topbar-right topbar-right--dashboard">
+        <a class="topbar-btn" href="{{ url_for('employee_leave') }}">+ Apply for Leave</a>
+        {% include "notification_widget.html" %}
+        <a class="user-pill user-pill--link" href="{{ url_for('employee_profile') }}">
+            {% if employee and employee.profile_picture %}<img class="user-avatar" src="{{ url_for('static', filename=employee.profile_picture) }}" alt="{{ employee.name }}">
+            {% else %}<span>{{ employee.name[0:2]|upper if employee else current_user.name[0]|upper }}</span>{% endif %}
+            <div><strong>{{ employee.name if employee else current_user.name }}</strong><span>{{ employee.department if employee else 'Employee' }}</span></div>
+        </a>
+    </div>
+</header>
+{% endblock %}
+{% block content %}
+<div class="dashboard-page">
+    <section class="dashboard-header">
+        <div><p class="eyebrow">Good morning, {{ employee.name.split(' ')[0] if employee else current_user.name.split(' ')[0] }} 👋</p><h2>{{ employee.joined }} · {{ employee.department if employee else 'Employee' }}</h2></div>
+        <a class="btn btn-secondary" href="{{ url_for('employee_profile') }}">Edit Profile</a>
+    </section>
+
+    <section class="mini-stat-grid">
+        <article class="mini-stat"><span>Active Tasks</span><strong>{{ dashboard_stats.active_tasks }}</strong></article>
+        <article class="mini-stat"><span>Completed</span><strong>{{ dashboard_stats.completed_tasks }}</strong></article>
+        <article class="mini-stat"><span>Overdue</span><strong>{{ dashboard_stats.overdue_tasks }}</strong></article>
+        <article class="mini-stat"><span>Pending Leave</span><strong>{{ dashboard_stats.pending_leave }}</strong></article>
+        <article class="mini-stat"><span>Approved Leave</span><strong>{{ dashboard_stats.approved_leave }}</strong></article>
+    </section>
+
+    <section class="balance-grid">
+        {% set annual = leave_balances.get('Annual Leave', {'allocated': 18, 'used': 0, 'remaining': 18}) %}
+        {% set sick = leave_balances.get('Sick Leave', {'allocated': 14, 'used': 0, 'remaining': 14}) %}
+        {% set emergency = leave_balances.get('Emergency Leave', {'allocated': 5, 'used': 0, 'remaining': 5}) %}
+        {% set unpaid = leave_balances.get('Unpaid Leave', {'allocated': 0, 'used': 0, 'remaining': 0}) %}
+        {% for label, balance, bar_class in [('Annual Leave', annual, ''),('Sick Leave', sick, 'progress-bar--warning'),('Emergency Leave', emergency, 'progress-bar--accent')] %}
+        <article class="balance-card"><p>{{ label }}</p><h3>{{ balance.remaining }} <span>/ {{ balance.allocated }} days</span></h3><div class="progress-row progress-row--balance"><span class="progress-label">Used: {{ balance.used }}</span><div class="progress-bar {{ bar_class }}"><div class="progress-fill" style="width: {{ ((balance.used / balance.allocated) * 100)|round|int if balance.allocated else 0 }}%"></div></div></div></article>
+        {% endfor %}
+        <article class="balance-card"><p>Unpaid Leave Taken</p><h3>{{ unpaid.used }} <span>day{{ 's' if unpaid.used != 1 }} (YTD)</span></h3><div class="progress-row progress-row--balance"><span class="progress-label">Recorded</span><div class="progress-bar progress-bar--secondary"><div class="progress-fill" style="width: {{ [unpaid.used * 10, 100]|min }}%"></div></div></div></article>
+    </section>
+
+    <section class="dashboard-main-grid">
+        <div class="tasks-panel panel-card">
+            <div class="panel-header"><div><p class="eyebrow">My Active Tasks</p><h4>Track work in progress</h4></div><div class="task-tabs"><button class="tab tab--active">All ({{ tasks|length }})</button><button class="tab">In Progress ({{ tasks|selectattr('status', 'equalto', 'In Progress')|list|length }})</button><button class="tab">Overdue ({{ tasks|selectattr('status', 'equalto', 'Overdue')|list|length }})</button></div></div>
+            <div class="task-list">
+                {% for task in tasks %}<article class="task-card"><div class="task-card-header"><div><h5>{{ task.title }}</h5><p>Due: {{ task.deadline }}</p></div><span class="task-status task-status--{{ task.status|replace(' ', '-')|lower }}">{{ task.status }}</span></div><div class="progress-row progress-row--task"><span class="progress-label">{{ task.progress }}%</span><div class="progress-bar progress-bar--task"><div class="progress-fill progress-fill--task" style="width: {{ task.progress }}%"></div></div></div></article>
+                {% else %}<article class="task-card"><p>No active tasks yet.</p></article>{% endfor %}
+            </div>
+            <div class="panel-footer"><a class="action-link" href="{{ url_for('employee_tasks') }}">View all {{ tasks|length }} tasks →</a></div>
+        </div>
+
+        <div class="right-column">
+            <div class="panel-card calendar-card calendar-card--dynamic">
+                <div class="panel-header calendar-heading"><div><p class="eyebrow">Synced Calendar</p><h4>{{ employee_calendar.month_name }} {{ employee_calendar.year }}</h4></div><div class="calendar-nav"><a href="{{ url_for('employee_dashboard', year=previous_month.year, month=previous_month.month) }}" aria-label="Previous month">←</a><a href="{{ url_for('employee_dashboard') }}">Today</a><a href="{{ url_for('employee_dashboard', year=next_month.year, month=next_month.month) }}" aria-label="Next month">→</a></div></div>
+                <div class="calendar-source-status"><span class="status-pill {{ 'status-pill--connected' if employee_calendar.google_connected else 'status-pill--failed' }}">Google {{ 'Connected' if employee_calendar.google_connected else 'Not Connected' }}</span>{% if not employee_calendar.google_connected %}<a href="{{ url_for('google_calendar_settings') }}">Connect calendar</a>{% endif %}</div>
+                <div class="calendar-grid calendar-grid--full">
+                    {% for label in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] %}<div class="calendar-day calendar-day--label">{{ label }}</div>{% endfor %}
+                    {% for week in employee_calendar.weeks %}{% for day in week %}
+                    <div class="calendar-day calendar-day--cell {% if day.month != employee_calendar.month %}calendar-day--muted{% endif %} {% if day == employee_calendar.today %}calendar-day--selected{% endif %}">
+                        <span>{{ day.day }}</span>
+                        {% if day.month == employee_calendar.month and employee_calendar.events_by_day.get(day.day) %}<span class="calendar-dot" title="{{ employee_calendar.events_by_day.get(day.day)|length }} event(s)"></span>{% endif %}
+                    </div>{% endfor %}{% endfor %}
+                </div>
+                <div class="calendar-agenda">
+                    <h5>Upcoming this month</h5>
+                    {% for event in employee_calendar.events[:6] %}<a class="calendar-event calendar-event--link" href="{{ event.link or '#' }}" {% if event.source == 'Google' and event.link %}target="_blank" rel="noopener"{% endif %}><span class="calendar-event-source calendar-event-source--{{ event.source|lower }}">{{ event.source }}</span><span><strong class="calendar-event-title">{{ event.title }}</strong><small class="calendar-event-time">{{ event.date }} · {{ event.time }}</small></span></a>
+                    {% else %}<div class="empty-inline">No tasks, approved leave, or Google events for this month.</div>{% endfor %}
+                </div>
+            </div>
+
+            <div class="panel-card performance-card"><div class="panel-header"><div><p class="eyebrow">My Performance</p><h4>{{ performance.rating }}</h4></div><strong class="performance-score">{{ performance.performance_score }}%</strong></div><div class="progress-bar progress-bar--task"><div class="progress-fill progress-fill--task" style="width: {{ performance.performance_score }}%"></div></div><div class="performance-metrics"><span>Completion {{ performance.completion_rate }}%</span><span>Average progress {{ performance.average_progress }}%</span><span>Deadline score {{ performance.deadline_score }}%</span></div></div>
+
+            <div class="panel-card notification-card"><div class="panel-header"><h4>Latest Notifications</h4></div><div class="status-list">{% for note in user_notifications[:3] %}<div class="status-row"><span><strong>{{ note.title }}</strong><small>{{ note.detail }}</small></span><span class="status-pill {{ 'status-pill--delivered' if note.read else 'status-pill--connected' }}">{{ 'Read' if note.read else 'New' }}</span></div>{% else %}<div class="empty-inline">No notifications yet.</div>{% endfor %}</div></div>
+        </div>
+    </section>
+</div>
+{% endblock %}
